@@ -48,6 +48,10 @@ _gosh_banner() {
 # gosh pray [tag] [-n N] [--slow|--fast]
 _gosh_pray() {
   emulate -L zsh
+  if ! _gosh_bible_available; then
+    _gosh_bible_hint 1
+    return 1
+  fi
   local tag="" count=${GOSH_PRAY_COUNT:-5} delay=${GOSH_PRAY_DELAY:-0}
 
   while (( $# )); do

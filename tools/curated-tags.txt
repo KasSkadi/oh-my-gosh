@@ -1,0 +1,113 @@
+# oh-my-gosh — 精选标签表（书卷 章:节|#tag #tag）
+# 只含引用与标签，不含经文原文；tools/fetch-verses.sh 在生成经文数据时套用。
+# 格式：USFM 代码 章:节|#tag #tag（书卷代码见 tools/books.tsv）
+GEN 1:1|#creation #truth
+GEN 1:3|#creation #light
+GEN 1:26|#creation #identity
+GEN 1:27|#creation #identity
+GEN 12:1|#guidance #obedience #promise
+GEN 12:2|#blessing #promise
+EXO 15:3|#strength #victory
+EXO 20:2|#law #salvation
+NUM 6:24|#blessing #protection
+NUM 6:25|#blessing #grace #light
+NUM 6:26|#blessing #peace
+DEU 6:5|#love #obedience
+DEU 8:3|#provision #truth
+JOS 1:9|#comfort #courage #promise
+1SA 16:7|#identity #truth
+PSA 1:1|#holiness #psalm
+PSA 3:3|#comfort #protection #psalm
+PSA 23:1|#provision #psalm #shepherd #trust
+PSA 23:2|#provision #psalm #rest
+PSA 23:4|#comfort #courage #protection #psalm
+PSA 27:1|#courage #light #psalm #salvation
+PSA 34:18|#comfort #mercy #psalm
+PSA 37:5|#guidance #psalm #trust
+PSA 46:1|#comfort #protection #psalm #strength
+PSA 46:10|#peace #psalm #rest #trust
+PSA 55:22|#comfort #psalm #trust
+PSA 119:105|#guidance #light #psalm #truth
+PSA 121:1|#comfort #protection #psalm
+PSA 121:2|#comfort #protection #psalm
+PSA 147:3|#comfort #healing #psalm
+PSA 150:6|#joy #praise #psalm
+PRO 1:7|#fear-of-god #wisdom
+PRO 3:5|#trust #wisdom
+PRO 3:6|#guidance #wisdom
+PRO 4:18|#holiness #hope #light
+PRO 15:1|#patience #peace #tongue
+PRO 16:9|#guidance #trust
+PRO 17:17|#friendship #love
+PRO 19:11|#forgiveness #mercy #patience
+ECC 1:2|#truth #wisdom
+ECC 3:1|#patience #wisdom
+ISA 30:15|#rest #strength #trust
+ISA 40:29|#comfort #strength
+ISA 40:31|#hope #strength #wait
+ISA 41:10|#comfort #courage #promise
+ISA 43:2|#comfort #promise #protection
+JER 15:16|#identity #joy #truth
+JER 29:11|#hope #peace #promise
+LAM 3:22|#comfort #hope #mercy
+LAM 3:23|#comfort #hope #mercy
+MIC 6:8|#humility #justice #mercy
+NAM 1:7|#comfort #protection
+ZEP 3:17|#comfort #joy #love #salvation
+MAT 5:3|#humility #kingdom
+MAT 5:4|#comfort #kingdom
+MAT 5:13|#discipleship #identity
+MAT 5:14|#discipleship #identity #light
+MAT 6:33|#faith #kingdom #provision
+MAT 6:34|#comfort #peace #trust
+MAT 11:28|#comfort #rest
+MAT 19:26|#faith #strength
+MAT 28:19|#discipleship #gospel
+MAT 28:20|#comfort #discipleship #promise
+MRK 9:23|#faith
+LUK 1:37|#faith #promise
+LUK 6:38|#blessing #generosity
+JHN 3:16|#eternal-life #faith #gospel #love #salvation
+JHN 6:35|#gospel #provision
+JHN 8:12|#gospel #light
+JHN 10:10|#eternal-life #gospel
+JHN 14:1|#comfort #faith #trust
+JHN 14:6|#gospel #salvation #truth
+JHN 14:27|#comfort #peace
+JHN 15:5|#discipleship #identity
+JHN 16:33|#comfort #peace #victory
+ACT 20:35|#blessing #generosity
+ROM 8:28|#hope #love #promise
+ROM 8:38|#comfort #love #promise
+ROM 8:39|#comfort #love #promise
+ROM 12:2|#holiness #obedience
+ROM 12:12|#hope #patience #prayer
+1CO 13:4|#love #patience
+1CO 13:13|#faith #hope #love
+2CO 1:3|#comfort #mercy
+2CO 1:4|#comfort #mercy
+2CO 12:9|#comfort #grace #strength
+GAL 5:22|#holiness #joy #love #peace
+GAL 5:23|#holiness #joy #love #peace
+EPH 2:8|#faith #grace #salvation
+EPH 2:10|#identity #work
+PHP 4:6|#peace #prayer #thanksgiving
+PHP 4:7|#comfort #peace #protection
+PHP 4:13|#faith #strength
+COL 3:23|#obedience #work
+1TH 5:16|#joy #prayer #thanksgiving
+1TH 5:17|#joy #prayer #thanksgiving
+1TH 5:18|#joy #prayer #thanksgiving
+2TI 1:7|#courage #love #strength
+HEB 11:1|#faith #hope
+HEB 13:6|#comfort #courage #trust
+HEB 13:8|#promise #trust
+JAS 4:8|#holiness #prayer
+JAS 4:10|#humility #promise
+1PE 5:7|#comfort #trust
+1JN 1:9|#forgiveness #grace #repentance
+1JN 4:16|#identity #love
+1JN 4:18|#comfort #courage #love
+REV 21:4|#comfort #eternal-life #hope
+REV 22:12|#kingdom #promise
+REV 22:13|#eternal-life #kingdom #truth

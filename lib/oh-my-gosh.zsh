@@ -5,8 +5,8 @@
 # GOSH_HOME：优先环境变量，否则按本文件位置推断（lib/ 的上一级）
 if [[ -z ${GOSH_HOME:-} ]]; then
   GOSH_HOME=${${(%):-%x}:A:h:h}
-  export GOSH_HOME
 fi
+export GOSH_HOME
 
 _GOSH_LIB="$GOSH_HOME/lib"
 
@@ -27,9 +27,9 @@ source "$_GOSH_LIB/prayer.zsh"
 source "$_GOSH_LIB/cli.zsh"
 
 # ── 启动 ──
-_gosh_bible_scan
 _gosh_theme_scan
-_gosh_load_bible "$GOSH_BIBLE_VERSION"
+# 没有数据时会打印一次「怎么获取数据」的提示（不会每条命令都刷屏）
+_gosh_load_bible "$GOSH_BIBLE_VERSION" || true
 _gosh_style_snapshot
 _gosh_theme_load "$GOSH_THEME"
 

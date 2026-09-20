@@ -1,50 +1,83 @@
 # ─────────────────────────────────────────────
 #  verse.zsh — 解析 / 抽取 / 渲染 / precmd 钩子
-#  条目格式："正文|出处|#tag #tag"（第三段可选）
+#
+#  条目格式（两种都支持，靠 _GOSH_DATA_FORMAT 区分）：
+#    txt : "出处<TAB>#tags<TAB>正文"     ← tools/fetch-verses.sh 生成，惰性加载
+#    zsh : "正文|出处|#tags"             ← 手写的小数据集
+#
+#  注意：解析路径上不要用命令替换（$()），否则每节经文都会 fork 一个子进程；
+#  31k 节的数据集下那会是灾难。结果放在 _GOSH_P_TEXT/_GOSH_P_REF/_GOSH_P_TAGS。
 # ─────────────────────────────────────────────
 
+typeset -g _GOSH_P_TEXT="" _GOSH_P_REF="" _GOSH_P_TAGS=""
 typeset -gA _GOSH_TAG_COUNT=()
 
 # ── 解析 ──
-_gosh_verse_text() { print -r -- ${1%%|*} }
-
-_gosh_verse_ref() {
+_gosh_parse_entry() {
   emulate -L zsh
-  local rest=${1#*|}
-  if [[ $rest == *'|'* ]]; then
-    print -r -- ${rest%%|*}
+  local entry=$1 rest
+  if [[ $_GOSH_DATA_FORMAT == txt ]]; then
+    _GOSH_P_REF=${entry%%$'\t'*}
+    rest=${entry#*$'\t'}
+    _GOSH_P_TAGS=${rest%%$'\t'*}
+    _GOSH_P_TEXT=${rest#*$'\t'}
   else
-    print -r -- ${rest}
+    _GOSH_P_TEXT=${entry%%|*}
+    rest=${entry#*|}
+    _GOSH_P_REF=${rest%%|*}
+    if [[ $rest == *'|'* ]]; then
+      _GOSH_P_TAGS=${rest#*|}
+    else
+      _GOSH_P_TAGS=""
+    fi
   fi
 }
 
-_gosh_verse_tags() {
-  emulate -L zsh
-  local rest=${1#*|}
-  [[ $rest == *'|'* ]] && print -r -- ${rest#*|}
-}
+# 便利包装（会 fork，别放在循环里）
+_gosh_verse_text() { _gosh_parse_entry "$1"; print -r -- "$_GOSH_P_TEXT" }
+_gosh_verse_ref()  { _gosh_parse_entry "$1"; print -r -- "$_GOSH_P_REF" }
+_gosh_verse_tags() { _gosh_parse_entry "$1"; print -r -- "$_GOSH_P_TAGS" }
 
-# 条目是否符合某个规范标签
+# 条目是否符合某个规范标签（无命令替换）
 _gosh_entry_has_tag() {
   emulate -L zsh
-  local field=$(_gosh_verse_tags "$1")
+  local entry=$1 tag=$2 field rest
+  if [[ $_GOSH_DATA_FORMAT == txt ]]; then
+    field=${${entry#*$'\t'}%%$'\t'*}
+  else
+    rest=${entry#*|}
+    field=""
+    [[ $rest == *'|'* ]] && field=${rest#*|}
+  fi
   [[ -n $field ]] || return 1
-  local -a toks=( ${(s: :)${field//\#/}} )
-  (( ${toks[(Ie)$2]} ))
+  [[ " ${field//\#/} " == *" $tag "* ]]
 }
 
-# 统计当前版本用到的标签，供 gosh tags 使用
+# ── 标签索引（按需构建，`gosh tags` / 校验标签时才用）──
 _gosh_tag_reindex() {
   emulate -L zsh
+  _gosh_bible_ensure_loaded
   _GOSH_TAG_COUNT=()
   local entry field t
   for entry in "${GOSH_VERSES[@]}"; do
-    field=$(_gosh_verse_tags "$entry")
+    if [[ $_GOSH_DATA_FORMAT == txt ]]; then
+      field=${${entry#*$'\t'}%%$'\t'*}
+    else
+      field=""
+      [[ ${entry#*|} == *'|'* ]] && field=${${entry#*|}#*|}
+    fi
     [[ -n $field ]] || continue
     for t in ${(s: :)${field//\#/}}; do
       [[ -n $t ]] && _GOSH_TAG_COUNT[$t]=$(( ${_GOSH_TAG_COUNT[$t]:-0} + 1 ))
     done
   done
+  _GOSH_TAG_INDEXED=1
+}
+
+_gosh_ensure_tag_index() {
+  emulate -L zsh
+  (( _GOSH_TAG_INDEXED )) || _gosh_tag_reindex
+  return 0
 }
 
 # ── 抽取 ──
@@ -59,7 +92,7 @@ _gosh_history_push() {
   local cap=${GOSH_VERSE_NO_REPEAT:-8}
   (( cap > 0 )) || cap=1
   while (( ${#_GOSH_HISTORY[@]} > cap )); do
-    # 注意：切片必须用 (@)，否则带空格的经文会被拼成一个元素
+    # 切片必须用 (@)，否则含空格的经文会被拼成一个元素
     _GOSH_HISTORY=("${(@)_GOSH_HISTORY[2,-1]}")
   done
 }
@@ -67,24 +100,41 @@ _gosh_history_push() {
 # _gosh_pick_entry [tag|别名] → 结果放进 $REPLY
 _gosh_pick_entry() {
   emulate -L zsh
+  _gosh_bible_ensure_loaded
+  local total=${#GOSH_VERSES[@]}
+  (( total > 0 )) || return 1
+
   local tag=""
   [[ -n $1 ]] && tag=$(_gosh_resolve_tag "$1")
-  local -a pool=()
-  local entry
-  for entry in "${GOSH_VERSES[@]}"; do
-    if [[ -z $tag ]] || _gosh_entry_has_tag "$entry" "$tag"; then
-      pool+=("$entry")
-    fi
-  done
-  (( ${#pool[@]} )) || return 1
 
-  local idx cand tries=0
+  local -a pool=()
+  local entry field i
+  if [[ -n $tag ]]; then
+    # 只有带过滤时才扫描；无过滤直接在全集里随机
+    for (( i = 1; i <= total; i++ )); do
+      entry=${GOSH_VERSES[$i]}
+      if [[ $_GOSH_DATA_FORMAT == txt ]]; then
+        field=${${entry#*$'\t'}%%$'\t'*}
+      else
+        field=""
+        [[ ${entry#*|} == *'|'* ]] && field=${${entry#*|}#*|}
+      fi
+      [[ -n $field ]] || continue
+      [[ " ${field//\#/} " == *" $tag "* ]] && pool+=("$i")
+    done
+    total=${#pool[@]}
+    (( total > 0 )) || return 1
+  fi
+
+  local tries=0 cand idx n
   while (( tries++ < 20 )); do
-    idx=$(( RANDOM % ${#pool[@]} + 1 ))
-    cand=${pool[$idx]}
-    _gosh_in_history "$cand" || break
+    n=$(( RANDOM % total + 1 ))
+    cand=${GOSH_VERSES[${pool[$n]:-$n}]}
+    # 空行（理论上不会有）也当作命中，继续抽
+    [[ -n $cand ]] && { _gosh_in_history "$cand" || break }
   done
-  REPLY=${cand:-${pool[1]}}
+  [[ -n $cand ]] || cand=${GOSH_VERSES[1]}
+  REPLY=$cand
   return 0
 }
 
@@ -114,22 +164,22 @@ _gosh_render_verse() {
 # ── 对外：打印一节经文 ──
 _gosh_print_verse() {
   emulate -L zsh
-  local raw=$1
-  local tag=""
+  local raw=$1 tag=""
   [[ -n $raw ]] && tag=$(_gosh_resolve_tag "$raw")
 
   if ! _gosh_pick_entry "$tag"; then
-    if [[ -n $tag ]]; then
+    if [[ -n $tag && ${#GOSH_VERSES[@]} -gt 0 ]]; then
       _gosh_report_bad_tag "$raw" "$tag" >&2
     else
-      print -u2 -- "⚠️  oh-my-gosh: 经文数据为空（$GOSH_BIBLE_VERSION）"
+      _gosh_bible_hint
     fi
     return 1
   fi
 
   local entry=$REPLY
   _gosh_history_push "$entry"
-  _gosh_render_verse "$(_gosh_verse_text "$entry")" "$(_gosh_verse_ref "$entry")" "$(_gosh_verse_tags "$entry")"
+  _gosh_parse_entry "$entry"
+  _gosh_render_verse "$_GOSH_P_TEXT" "$_GOSH_P_REF" "$_GOSH_P_TAGS"
   return 0
 }
 

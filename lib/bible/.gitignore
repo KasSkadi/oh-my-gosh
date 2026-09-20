@@ -1,0 +1,5 @@
+# 经文原文不进仓库：这里的数据由使用者自己生成（tools/fetch-verses.sh）或手写
+verses-*.txt
+verses-*.meta
+verses-*.zsh
+!README.md

@@ -4,6 +4,10 @@
 
 _gosh_cmd_bless() {
   emulate -L zsh
+  if ! _gosh_bible_available; then
+    _gosh_bible_hint 1
+    return 1
+  fi
   local tag="" count=1
   while (( $# )); do
     case $1 in
@@ -57,6 +61,11 @@ _gosh_cmd_tag() {
 
 _gosh_list_tags() {
   emulate -L zsh
+  if ! _gosh_bible_available; then
+    _gosh_bible_hint 1
+    return 1
+  fi
+  _gosh_ensure_tag_index
   _gosh_t available_tags
   local -a tags=(${(ok)_GOSH_TAG_COUNT})
   local t out="" col=0
@@ -112,14 +121,18 @@ _gosh_cmd_version() {
   emulate -L zsh
   local id=$1
   if [[ -z $id || $id == (show|status) ]]; then
-    _gosh_t version_now "$GOSH_BIBLE_VERSION" "$GOSH_BIBLE_NAME"
+    if _gosh_bible_available; then
+      _gosh_t version_now "$GOSH_BIBLE_VERSION" "$GOSH_BIBLE_NAME"
+    else
+      _gosh_t no_data
+    fi
     return 0
   fi
   if [[ $id == (list|ls|versions) ]]; then
     _gosh_list_versions
     return 0
   fi
-  if [[ ! -r "$GOSH_HOME/lib/bible/verses-$id.zsh" ]]; then
+  if ! _gosh_bible_data_file "$id" >/dev/null 2>&1; then
     _gosh_t unknown_version "$id"
     return 1
   fi
@@ -131,12 +144,22 @@ _gosh_cmd_version() {
 _gosh_list_versions() {
   emulate -L zsh
   _gosh_t available_versions
-  local id mark
-  for id in $(_gosh_bible_ids); do
+  local -a ids=($(_gosh_bible_ids))
+  if (( ! ${#ids[@]} )); then
+    _gosh_t versions_none
+    print -r -- "  $(_gosh_l2 '获取数据：gosh setup（或 tools/fetch-verses.sh cuv）' 'Fetch data with: gosh setup (or tools/fetch-verses.sh cuv)')"
+    return 0
+  fi
+  local id mark name lang count
+  for id in "${ids[@]}"; do
     if [[ $id == $GOSH_BIBLE_VERSION ]]; then mark='●'; else mark='○'; fi
-    printf '  %s %-10s %-28s %s\n' "$mark" "$id" "$(_gosh_bible_name "$id")" "$(_gosh_bible_lang "$id")"
+    name=$(_gosh_bible_name "$id")
+    lang=$(_gosh_bible_lang_of "$id")
+    count=$(_gosh_bible_meta_field "$id" count)
+    [[ $count == <-> ]] || count='?'
+    printf '  %s %-9s %-26s %-3s %s\n' "$mark" "$id" "$name" "$lang" "$count"
   done
-  print -r -- "  $(_gosh_l2 '用法：GOSH_BIBLE_VERSION=en-KJV ｜ gosh version en-KJV' 'Usage: GOSH_BIBLE_VERSION=en-KJV | gosh version en-KJV')"
+  print -r -- "  $(_gosh_l2 '用法：GOSH_BIBLE_VERSION=en-KJV ｜ gosh version en-KJV ｜ gosh setup' 'Usage: GOSH_BIBLE_VERSION=en-KJV | gosh version en-KJV | gosh setup')"
 }
 
 _gosh_cmd_lang() {
@@ -164,14 +187,49 @@ _gosh_cmd_lang() {
 _gosh_status() {
   emulate -L zsh
   _gosh_t status_title "$GOSH_VERSION"
-  printf '  %-10s %s\n' "$(_gosh_l2 '版本' 'Version')" "$GOSH_BIBLE_VERSION  ·  $GOSH_BIBLE_NAME"
-  printf '  %-10s %s\n' "$(_gosh_l2 '语言' 'Language')" "ui=$GOSH_UI_LANG  ·  bible=$GOSH_BIBLE_LANG"
+  if _gosh_bible_available; then
+    printf '  %-10s %s\n' "$(_gosh_l2 '版本' 'Version')" "$GOSH_BIBLE_VERSION  ·  $GOSH_BIBLE_NAME"
+    printf '  %-10s %s\n' "$(_gosh_l2 '经文' 'Verses')" "${GOSH_BIBLE_COUNT:-?}"
+    [[ -n $GOSH_BIBLE_SOURCE ]] && printf '  %-10s %s\n' "$(_gosh_l2 '来源' 'Source')" "$GOSH_BIBLE_SOURCE"
+  else
+    printf '  %-10s %s\n' "$(_gosh_l2 '版本' 'Version')" "$(_gosh_t data_missing)"
+  fi
+  printf '  %-10s %s\n' "$(_gosh_l2 '语言' 'Language')" "ui=$GOSH_UI_LANG  ·  bible=${GOSH_BIBLE_LANG:-?}"
   printf '  %-10s %s\n' "$(_gosh_l2 '主题' 'Theme')" "$GOSH_THEME  ·  $(_gosh_theme_desc "$GOSH_THEME")"
   printf '  %-10s %s\n' "$(_gosh_l2 '标签' 'Tag')" "${GOSH_VERSE_TAG:-(*)}"
   printf '  %-10s %s\n' "$(_gosh_l2 '开关' 'Switch')" "on=$GOSH_ENABLE_VERSE  ·  freq=$GOSH_VERSE_FREQUENCY  ·  prob=$GOSH_VERSE_PROBABILITY%"
   printf '  %-10s %s\n' "$(_gosh_l2 '失败彩蛋' 'On error')" "comfort=$GOSH_COMFORT_ON_ERROR  ·  #$GOSH_COMFORT_TAG"
   printf '  %-10s %s\n' "$(_gosh_l2 '祈祷' 'Prayer')" "count=$GOSH_PRAY_COUNT  ·  delay=${GOSH_PRAY_DELAY}s"
-  _gosh_t count_now "${#GOSH_VERSES[@]}" "${#_GOSH_TAG_COUNT[@]}"
+  _gosh_bible_available || _gosh_t no_data
+  return 0
+}
+
+# gosh setup [来源...] —— 调用 tools/fetch-verses.sh 获取数据
+_gosh_setup() {
+  emulate -L zsh
+  local tool="$GOSH_HOME/tools/fetch-verses.sh"
+  if [[ ! -r $tool ]]; then
+    _gosh_t setup_usage
+    print -r -- "  $(_gosh_l2 "找不到 $tool（安装包里应包含 tools/ 目录）" "missing $tool (tools/ should come with the install)")"
+    return 1
+  fi
+  local -a args=("$@")
+  (( ${#args[@]} )) || args=(list)
+  _gosh_t setup_run "tools/fetch-verses.sh ${(j: :)args}"
+  if ! command bash "$tool" "${args[@]}"; then
+    _gosh_t setup_failed "$?"
+    return 1
+  fi
+
+  # 有数据了就切过去
+  local -a ids=($(_gosh_bible_ids))
+  if (( ${#ids[@]} )) && ! _gosh_bible_data_file "$GOSH_BIBLE_VERSION" >/dev/null 2>&1; then
+    GOSH_BIBLE_VERSION=${ids[1]}
+  fi
+  if _gosh_load_bible "$GOSH_BIBLE_VERSION" 2>/dev/null; then
+    _gosh_t setup_done
+    _gosh_list_versions
+  fi
   return 0
 }
 
@@ -230,6 +288,7 @@ _gosh_usage() {
   gosh prob P               trigger probability in percent
   gosh comfort on|off       comfort verse when a command fails
   gosh status               show the current configuration
+  gosh setup [source...]    fetch Bible data (cuv / cuvt / kjv / web)
   gosh save                 persist the current settings to \$GOSH_HOME/goshrc
   gosh shell                open a nested gosh shell
 
@@ -256,6 +315,7 @@ EOF
   gosh prob P                  触发概率（百分比）
   gosh comfort on|off          命令失败时是否必出“安慰”经文
   gosh status                  查看当前配置
+  gosh setup [来源...]         获取经文数据（cuv / cuvt / kjv / web）
   gosh save                    把当前设置写入 \$GOSH_HOME/goshrc
   gosh shell                   打开一个嵌套的 gosh shell
 
@@ -317,6 +377,7 @@ gosh() {
       esac
       _gosh_t comfort_now "$GOSH_COMFORT_ON_ERROR (#$GOSH_COMFORT_TAG)" ;;
     status|info)        _gosh_status ;;
+    setup|fetch)        shift; _gosh_setup "$@" ;;
     save)               _gosh_save ;;
     shell|zsh)          shift; _gosh_shell "$@" ;;
     *)
@@ -345,6 +406,7 @@ _gosh_complete() {
     'prob:设置概率|set probability'
     'comfort:失败彩蛋开关|comfort on error'
     'status:查看配置|show config'
+    'setup:获取经文数据|fetch Bible data'
     'save:保存设置|save settings'
     'shell:打开嵌套 gosh shell|open a nested gosh shell'
     'help:帮助|help'

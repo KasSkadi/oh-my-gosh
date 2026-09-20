@@ -36,6 +36,13 @@ typeset -gA _GOSH_I18N_ZH=(
   status_title    "── oh-my-gosh %s ──"
   cant_launch     "⚠️  找不到启动器 %s"
   help_hint       "用 gosh help 查看全部命令"
+  no_data         "📖 还没有安装经文数据：运行 gosh setup 获取公有领域圣经（例如 gosh setup cuv kjv）"
+  setup_usage     "用法：gosh setup [来源...]（cuv / cuvt / kjv / web；不带参数看详情）"
+  setup_run       "⚙️  运行经文数据工具：%s"
+  setup_failed    "⚠️  数据工具返回了错误（退出码 %s）"
+  setup_done      "✅ 经文数据已就绪"
+  versions_none   "（还没有安装任何经文数据：gosh setup）"
+  data_missing    "未安装"
 )
 
 typeset -gA _GOSH_I18N_EN=(
@@ -72,6 +79,13 @@ typeset -gA _GOSH_I18N_EN=(
   status_title    "── oh-my-gosh %s ──"
   cant_launch     "⚠️  Launcher not found: %s"
   help_hint       "Run gosh help for the full command list"
+  no_data         "📖 No Bible text installed yet — run gosh setup (e.g. gosh setup cuv kjv)"
+  setup_usage     "Usage: gosh setup [source...] (cuv / cuvt / kjv / web; no argument for details)"
+  setup_run       "⚙️  Running the verse data tool: %s"
+  setup_failed    "⚠️  Data tool failed with exit code %s"
+  setup_done      "✅ Bible data ready"
+  versions_none   "(no Bible text installed yet — try gosh setup)"
+  data_missing    "not installed"
 )
 
 # _gosh_t <key> [args...]

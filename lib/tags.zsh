@@ -7,11 +7,11 @@
 # 规范标签（英文小写），gosh tags 只统计实际用到的标签
 typeset -ga GOSH_TAG_CANON=(
   blessing comfort courage creation discipleship eternal-life faith
-  fear-of-god forgiveness friendship generosity gospel grace guidance
-  healing holiness hope humility identity joy justice kingdom law light
-  love mercy obedience patience peace praise prayer promise protection
-  provision psalm repentance rest salvation shepherd strength thanksgiving
-  tongue trust truth victory wait wisdom work
+  epistle fear-of-god forgiveness friendship generosity gospel grace
+  guidance healing history holiness hope humility identity joy justice
+  kingdom law light love mercy obedience patience peace praise prayer
+  promise prophecy protection provision psalm repentance rest salvation
+  shepherd strength thanksgiving tongue trust truth victory wait wisdom work
 )
 
 # 别名 → 规范标签（支持中英文、单复数、常见写法）
@@ -65,6 +65,9 @@ typeset -gA GOSH_TAG_ALIASES=(
   fear-of-god fear-of-god 敬畏 fear-of-god 敬畏神 fear-of-god
   tongue tongue       言语 tongue         言語 tongue       舌头 tongue
   generosity generosity 施舍 generosity   慷慨 generosity    给予 generosity
+  history history     历史 history       歷史 history      历史书 history
+  prophecy prophecy   预言 prophecy      預言 prophecy     先知 prophecy
+  epistle epistle     书信 epistle       書信 epistle      保罗书信 epistle
 )
 
 # 把用户输入解析成规范标签
@@ -79,7 +82,20 @@ _gosh_resolve_tag() {
 
 _gosh_tag_exists() {
   emulate -L zsh
-  (( ${_GOSH_TAG_COUNT[$1]:-0} > 0 ))
+  _gosh_bible_ensure_loaded
+  local entry field rest
+  for entry in "${GOSH_VERSES[@]}"; do
+    if [[ $_GOSH_DATA_FORMAT == txt ]]; then
+      field=${${entry#*$'\t'}%%$'\t'*}
+    else
+      rest=${entry#*|}
+      field=""
+      [[ $rest == *'|'* ]] && field=${rest#*|}
+    fi
+    [[ -n $field ]] || continue
+    [[ " ${field//\#/} " == *" $1 "* ]] && return 0
+  done
+  return 1
 }
 
 # 抽不到时说明原因：标签不认识，还是这个版本里没有

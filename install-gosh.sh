@@ -95,12 +95,23 @@ install_dir lib
 install_dir themes
 install_dir bin
 install_dir zdotdir
+install_dir tools
 install_file gosh.plugin.zsh
 install_file oh-my-gosh.plugin.zsh
 install_file README.md
+install_file NOTICE.md
 install_file LICENSE
 
 chmod +x "$GOSH_HOME/bin/gosh"
+[[ -f "$GOSH_HOME/tools/fetch-verses.sh" ]] && chmod +x "$GOSH_HOME/tools/fetch-verses.sh"
+
+# ── 仓库不含经文原文：检查本地是否已经有数据 ──
+shopt -s nullglob
+HAS_DATA=0
+for f in "$GOSH_HOME"/lib/bible/verses-*.txt "$GOSH_HOME"/lib/bible/verses-*.zsh; do
+  [[ -r $f ]] && HAS_DATA=1
+done
+shopt -u nullglob
 
 # ── 把 $HOME 前缀缩写成 $HOME，方便写进 rc 文件 ──
 as_rc_path() {
@@ -143,12 +154,18 @@ fi
 
 # ── 自检 ──
 echo ""
-if SELFCHECK=$(GOSH_HOME="$GOSH_HOME" zsh -f -c "source \"$GOSH_HOME/lib/oh-my-gosh.zsh\"; gosh --version; gosh bless psalm -n 1" 2>&1); then
+if SELFCHECK=$(GOSH_HOME="$GOSH_HOME" zsh -f -c "source \"$GOSH_HOME/lib/oh-my-gosh.zsh\"; gosh --version" 2>&1); then
   echo "🔎 自检通过："
   echo "$SELFCHECK" | sed 's/^/    /'
 else
   echo "⚠️  自检失败，请把下面的输出发给开发者："
   echo "$SELFCHECK" | sed 's/^/    /'
+fi
+
+if [[ $HAS_DATA == 1 ]]; then
+  echo "📖 经文数据：已安装（$GOSH_HOME/lib/bible）"
+else
+  echo "📖 经文数据：尚未安装（仓库不含经文原文）"
 fi
 
 cat <<EOF
@@ -160,6 +177,7 @@ cat <<EOF
   2) 或者用独立 shell：       $GOSH_HOME/bin/gosh
 
 常用命令：
+  gosh setup cuv kjv    获取公有领域经文数据（首次使用必须先做）
   gosh bless psalm     抽一节诗篇
   gosh pray            祈祷模式：一串经文 + 十字架
   gosh theme revelation 换成启示录风格
@@ -167,6 +185,7 @@ cat <<EOF
   gosh tags            看当前版本的所有标签
   gosh help            全部命令
 
+版权与数据来源：见 $GOSH_HOME/NOTICE.md
 卸载：删掉 $GOSH_HOME，再删掉 ${RC_FILE} 里 $BLOCK_START 到 $BLOCK_END 的几行。
 
 EOF
