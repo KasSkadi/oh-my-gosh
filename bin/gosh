@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# 启动一个带 oh-my-gosh 的 zsh。安装到 ~/.gosh 后，$GOSH_HOME 会按本文件位置推断。
+_gosh_bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export GOSH_HOME="${GOSH_HOME:-$(cd "$_gosh_bin_dir/.." && pwd)}"
+export GOSH_ORIGINAL_ZDOTDIR="${ZDOTDIR:-$HOME}"
+export ZDOTDIR="$GOSH_HOME/zdotdir"
+unset _gosh_bin_dir
+exec zsh -i "$@"
